@@ -1,974 +1,1185 @@
 # MediaPipe Computer Vision Practice
 
-A practical **MediaPipe-based computer vision practice project** for
-learning and implementing real-time landmark detection, object
-detection, and holistic human/face/hand/pose analysis using Python.
+A practical computer-vision learning project using **MediaPipe Tasks, Python, OpenCV, and a mobile phone IP camera**.
 
-The project is designed as a progressive learning environment, starting
-with individual MediaPipe tasks and moving toward combining multiple
-vision capabilities.
+The project focuses on understanding and practicing MediaPipe vision tasks from basic landmark detection through human-pose/face/hand analysis, holistic tracking, object detection, gesture logic, and real-time camera processing.
 
-------------------------------------------------------------------------
+> **Note:** This README is a generic project guide. It intentionally focuses on concepts, setup, models, commands, architecture, and troubleshooting rather than explaining every Python line.
 
-## Project Overview
+---
 
-This project currently contains practice implementations for:
+## 1. Project Objective
 
--   **Face Landmarker**
--   **Hand Landmarker**
--   **Pose Landmarker**
--   **Holistic Landmarker**
--   **Object Detector**
--   **Phone Camera Streaming**
+The objective of this project is to practice modern MediaPipe computer-vision tasks in a local Python environment.
 
-The camera source can be a mobile phone camera streamed over the local
-network, which is useful when the development computer does not have a
-built-in webcam.
+The PC does not have a webcam, so a **mobile phone camera is used as the live video source** through an IP video stream.
 
-### Current Architecture
+The overall learning path is:
 
-``` text
-                    Phone Camera
-                         |
-                         v
-                 Video Stream / URL
-                         |
-                         v
-                   OpenCV Capture
-                         |
-                         v
-                  RGB Video Frames
-                         |
-             +-----------+-----------+
-             |           |           |
-             v           v           v
-          Face        Hand        Pose
-       Landmarker   Landmarker  Landmarker
-             |           |           |
-             +-----------+-----------+
-                         |
-                         v
-                  Vision Results
-                         |
-                         v
-                Visualization / Analysis
+```text
+Camera Input
+     ↓
+OpenCV
+     ↓
+MediaPipe Tasks
+     ↓
+Landmarks / Detections
+     ↓
+Feature Extraction
+     ↓
+Gesture / Application Logic
+     ↓
+Real-Time Computer Vision
 ```
 
-Holistic Landmarker can be used when multiple human landmark components
-need to be processed together.
+---
 
-Object detection is handled as a separate MediaPipe task.
+## 2. What is MediaPipe?
 
-------------------------------------------------------------------------
+[MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/guide) is a framework and collection of machine-learning/perception solutions for building computer-vision applications.
 
-## Project Structure
+The MediaPipe Tasks API provides ready-to-use tasks for areas such as:
 
-``` text
-Media_Pipe/
+- Hand landmark detection
+- Pose landmark detection
+- Face landmark detection
+- Holistic landmark detection
+- Object detection
+- Gesture-oriented processing
+- Real-time vision applications
+
+---
+
+## 3. Technologies Used
+
+| Technology | Purpose |
+|---|---|
+| Python | Main programming language |
+| MediaPipe Tasks | Vision inference and landmark/detection tasks |
+| OpenCV | Camera capture, frame processing and visualization |
+| NumPy | Image and numerical processing |
+| TensorFlow Lite | Model format used by compatible models |
+| Python Virtual Environment | Isolated project environment |
+| Mobile IP Camera | Live camera source |
+
+---
+
+## 4. Overall Architecture
+
+```text
+                 Mobile Phone Camera
+                         │
+                         ▼
+                  IP Video Stream
+                         │
+                         ▼
+                       OpenCV
+                         │
+                    BGR → RGB
+                         │
+                         ▼
+                  MediaPipe Image
+                         │
+                         ▼
+                 MediaPipe Task
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+        Hand            Pose           Face
+          │              │              │
+          └──────────────┼──────────────┘
+                         ▼
+                  Holistic / Object
+                     Detection
+                         │
+                         ▼
+              Feature / Gesture Logic
+                         │
+                         ▼
+                Visualization / App
+```
+
+---
+
+# 5. PC Environment Setup
+
+## 5.1 Create the project
+
+```powershell
+mkdir E:\Media_Pipe
+cd E:\Media_Pipe
+```
+
+## 5.2 Create a virtual environment
+
+```powershell
+python -m venv .venv
+```
+
+## 5.3 Activate the environment
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Expected prompt:
+
+```text
+(.venv) PS E:\Media_Pipe>
+```
+
+## 5.4 Install dependencies
+
+```powershell
+pip install mediapipe
+pip install opencv-python
+pip install numpy
+```
+
+Or:
+
+```powershell
+pip install mediapipe opencv-python numpy
+```
+
+## 5.5 Verify installation
+
+```powershell
+python --version
+```
+
+```powershell
+python -c "import mediapipe as mp; print(mp.__version__)"
+```
+
+```powershell
+python -c "import cv2; print(cv2.__version__)"
+```
+
+---
+
+# 6. Project Structure
+
+Recommended structure:
+
+```text
+E:\Media_Pipe
 │
 ├── .venv/
 │
 ├── models/
-│   ├── face_landmarker.task
 │   ├── hand_landmarker.task
+│   ├── pose_landmarker_lite.task
+│   ├── face_landmarker.task
 │   ├── holistic_landmarker.task
-│   ├── object_detector.tflite
-│   └── pose_landmarker_lite.task
+│   └── object_detector.tflite
 │
-├── face_landmarker.py
+├── phone_camera.py
 ├── hand_landmarks.py
+├── pose_landmarks.py
+├── face_landmarker.py
 ├── holistic_landmarker.py
 ├── object_detector.py
-├── phone_camera.py
-├── pose_landmarks.py
 │
-├── .gitignore
-└── Readme.md
+├── README.md
+└── .gitignore
 ```
 
-### Directory Description
+---
 
-  -----------------------------------------------------------------------
-  Path                                Purpose
-  ----------------------------------- -----------------------------------
-  `.venv/`                            Python virtual environment
+# 7. Mobile Phone Camera
 
-  `models/`                           MediaPipe task/model files
+Since the PC does not have a webcam, the mobile phone is used as the camera.
 
-  `face_landmarker.py`                Face landmark detection practice
-
-  `hand_landmarks.py`                 Hand landmark detection practice
-
-  `holistic_landmarker.py`            Combined human landmark detection
-                                      practice
-
-  `object_detector.py`                Object detection practice
-
-  `phone_camera.py`                   Phone camera/video stream handling
-
-  `pose_landmarks.py`                 Human pose landmark detection
-                                      practice
-
-  `Readme.md`                         Project documentation
-  -----------------------------------------------------------------------
-
-------------------------------------------------------------------------
-
-# 1. Technologies Used
-
--   Python
--   MediaPipe
--   MediaPipe Tasks API
--   OpenCV
--   NumPy
--   OpenCV VideoCapture
--   TensorFlow Lite models through MediaPipe Tasks
--   Python virtual environment
-
-The project primarily uses the **MediaPipe Tasks API** for the landmark
-and detection tasks.
-
-------------------------------------------------------------------------
-
-# 2. Environment Setup
-
-## Create Virtual Environment
-
-From the project directory:
-
-``` powershell
-python -m venv .venv
+```text
+Mobile Phone
+     ↓
+IP Camera Application
+     ↓
+Wi-Fi / Local Network
+     ↓
+HTTP Video Stream
+     ↓
+OpenCV
+     ↓
+MediaPipe
 ```
 
-Activate it on Windows PowerShell:
+Example camera URL:
 
-``` powershell
-.\.venv\Scripts\Activate.ps1
+```python
+PHONE_CAMERA_URL = "http://192.168.1.110:8080/video"
 ```
 
-After activation, the terminal should show:
+### Important
 
-``` text
-(.venv) PS E:\Media_Pipe>
+The IP address is dependent on the local network and may change.
+
+The phone and PC should be connected to a network that allows the PC to access the phone's video stream.
+
+---
+
+# 8. MediaPipe Tasks Practiced
+
+| Task | Main Output | Typical Applications |
+|---|---|---|
+| Hand Landmarker | 21 hand landmarks | Hand tracking, finger analysis |
+| Pose Landmarker | 33 body landmarks | Pose/posture/movement analysis |
+| Face Landmarker | Facial landmarks and optional facial features | Face analysis |
+| Holistic Landmarker | Face + pose + hands | Full-body human tracking |
+| Object Detector | Bounding boxes + categories + scores | Object detection |
+
+---
+
+# 9. Hand Landmarker
+
+The Hand Landmarker detects a hand and provides **21 hand landmarks**.
+
+General pipeline:
+
+```text
+Input Image
+     ↓
+Hand Detection
+     ↓
+21 Hand Landmarks
+     ↓
+Coordinate Extraction
+     ↓
+Geometric Analysis
+     ↓
+Finger / Gesture Logic
 ```
 
-------------------------------------------------------------------------
+The landmarks can be used for:
 
-## Install Dependencies
+- Hand tracking
+- Finger-state analysis
+- Gesture recognition
+- Distance measurement
+- Angle calculation
+- Human-computer interaction
 
-Install the main packages:
+---
 
-``` powershell
-pip install mediapipe opencv-python numpy
-```
+# 10. Hand Landmark Structure
 
-You can verify MediaPipe:
-
-``` powershell
-python -c "import mediapipe as mp; print(mp.__version__)"
-```
-
-Verify OpenCV:
-
-``` powershell
-python -c "import cv2; print(cv2.__version__)"
-```
-
-------------------------------------------------------------------------
-
-# 3. MediaPipe Models
-
-The `models` directory contains the model/task files required by the
-Python scripts.
-
-Current model files:
-
-``` text
-models/
-├── face_landmarker.task
-├── hand_landmarker.task
-├── holistic_landmarker.task
-├── object_detector.tflite
-└── pose_landmarker_lite.task
-```
-
-The scripts reference these files locally instead of downloading the
-model every time the program starts.
-
-## Important
-
-The model path used in a script must match the actual filename.
-
-For example:
-
-``` python
-MODEL_PATH = "models/face_landmarker.task"
-```
-
-If the model is missing, the corresponding script will not be able to
-initialize the MediaPipe task.
-
-------------------------------------------------------------------------
-
-# 4. Face Landmarker
-
-File:
-
-``` text
-face_landmarker.py
-```
-
-The Face Landmarker is used to detect facial landmarks from video
-frames.
-
-### Processing Pipeline
-
-``` text
-Camera Frame
-     |
-     v
-BGR -> RGB
-     |
-     v
-MediaPipe Image
-     |
-     v
-Face Landmarker
-     |
-     +----> Face Landmarks
-     |
-     +----> Face Blendshapes
-     |
-     +----> Facial Transformation Matrix
-     |
-     v
-Visualization
-```
-
-The face landmarks can later be used for:
-
--   Face geometry
--   Eye analysis
--   Blink detection
--   Mouth analysis
--   Smile-related measurements
--   Head pose analysis
--   Facial movement analysis
-
-### Run
-
-``` powershell
-python face_landmarker.py
-```
-
-Typical keyboard controls:
-
-``` text
-Q -> Quit
-I -> Toggle landmark indices
-```
-
-------------------------------------------------------------------------
-
-# 5. Hand Landmarker
-
-File:
-
-``` text
-hand_landmarks.py
-```
-
-The Hand Landmarker detects hand keypoints/landmarks from the camera
-stream.
-
-### Processing Pipeline
-
-``` text
-Camera Frame
-     |
-     v
-RGB Conversion
-     |
-     v
-Hand Landmarker
-     |
-     v
-Hand Landmarks
-     |
-     v
-Visualization
-```
-
-Hand landmarks can be used for:
-
--   Finger tracking
--   Hand position
--   Gesture recognition
--   Distance calculation
--   Joint angle calculation
--   Custom gesture classification
-
-A useful next step after landmark detection is to calculate geometric
-features such as distances and joint angles.
-
-Example:
-
-``` text
-Thumb Tip -------- Index Tip
-       \          /
-        \        /
-         Distance
-```
-
-------------------------------------------------------------------------
-
-# 6. Pose Landmarker
-
-File:
-
-``` text
-pose_landmarks.py
-```
-
-The Pose Landmarker is used to identify human body landmarks.
-
-### Processing Pipeline
-
-``` text
-Camera Frame
-     |
-     v
-Pose Landmarker
-     |
-     v
-Body Landmarks
-     |
-     +----> Shoulder
-     +----> Elbow
-     +----> Wrist
-     +----> Hip
-     +----> Knee
-     +----> Ankle
-     |
-     v
-Pose Visualization
-```
-
-Pose landmarks can be used for:
-
--   Body tracking
--   Joint angle calculation
--   Posture analysis
--   Exercise analysis
--   Human activity analysis
--   Movement analysis
-
-------------------------------------------------------------------------
-
-# 7. Holistic Landmarker
-
-File:
-
-``` text
-holistic_landmarker.py
-```
-
-The Holistic Landmarker is intended for combined human landmark
-analysis.
+The 21 landmarks represent important points of the hand.
 
 Conceptually:
 
-``` text
-                 Human
-                   |
-        +----------+----------+
-        |          |          |
-        v          v          v
-      Face        Pose       Hands
-        |          |          |
-        +----------+----------+
-                   |
-                   v
-          Combined Analysis
+```text
+                 8
+                 │
+                 7
+                 │
+                 6
+                 │
+                 5
+                 │
+                 0 ───── 9 ───── 13 ───── 17
+                 │
+                 │
+             Thumb
 ```
 
-This is useful when an application needs information from multiple parts
-of the body at the same time.
+The complete hand model contains:
 
-Possible applications include:
+- Wrist
+- Thumb
+- Index finger
+- Middle finger
+- Ring finger
+- Pinky
 
--   Full-body tracking
--   Gesture + pose analysis
--   Human-computer interaction
--   Exercise analysis
--   Interactive applications
+Each landmark provides normalized coordinate information.
 
-------------------------------------------------------------------------
+---
 
-# 8. Object Detector
+# 11. Hand Geometry
 
-File:
-
-``` text
-object_detector.py
-```
-
-The Object Detector performs object detection using the configured
-TensorFlow Lite/MediaPipe-compatible model.
-
-Model:
-
-``` text
-models/object_detector.tflite
-```
-
-Typical detection output can contain:
-
-``` text
-Object
-Class
-Confidence
-Bounding Box
-```
-
-Conceptually:
-
-``` text
-Camera Frame
-     |
-     v
-Object Detector
-     |
-     v
-+-------------------------+
-| Class                   |
-| Confidence              |
-| Bounding Box            |
-+-------------------------+
-```
-
-Object detection is different from landmark detection.
-
-### Landmark Detection
-
-Returns key points:
-
-``` text
-     •
-   •   •
-     •
-```
-
-### Object Detection
-
-Returns regions/bounding boxes:
-
-``` text
-+-------------------+
-|                   |
-|      Object       |
-|                   |
-+-------------------+
-```
-
-------------------------------------------------------------------------
-
-# 9. Phone Camera
-
-File:
-
-``` text
-phone_camera.py
-```
-
-The project can use a mobile phone as the camera source.
-
-Example stream:
-
-``` text
-http://192.168.1.110:8080/video
-```
-
-The exact IP address depends on the phone's current local network
-address.
-
-A typical OpenCV connection is:
-
-``` python
-cap = cv2.VideoCapture(CAMERA_URL)
-```
-
-The phone and development computer normally need to be connected to the
-same local network for this type of stream.
-
-## Important
-
-The IP address shown above is an example/current development
-configuration. If the phone receives a different IP address, update the
-camera URL.
-
-------------------------------------------------------------------------
-
-# 10. OpenCV + MediaPipe Pipeline
-
-Most of the real-time scripts follow this general processing flow:
-
-``` text
-             Camera
-                |
-                v
-        OpenCV VideoCapture
-                |
-                v
-             Frame
-                |
-                v
-          BGR -> RGB
-                |
-                v
-        MediaPipe mp.Image
-                |
-                v
-          MediaPipe Task
-                |
-                v
-          Detection Result
-                |
-                v
-       Visualization / Logic
-                |
-                v
-          cv2.imshow()
-```
-
-This pipeline is fundamental for real-time computer vision applications.
-
-------------------------------------------------------------------------
-
-# 11. Landmark Coordinates
-
-MediaPipe landmarks generally provide normalized coordinates.
-
-Conceptually:
-
-``` text
-x -> Horizontal position
-y -> Vertical position
-z -> Relative depth information
-```
-
-For an image with:
-
-``` text
-width  = W
-height = H
-```
-
-pixel coordinates can be obtained approximately as:
-
-``` python
-pixel_x = int(landmark.x * W)
-pixel_y = int(landmark.y * H)
-```
-
-This allows normalized landmark coordinates to be mapped onto the camera
-frame.
-
-------------------------------------------------------------------------
-
-# 12. Geometry Practice
-
-After basic landmark detection, geometric calculations can be performed.
+After obtaining landmarks, geometric calculations can be performed.
 
 ## Distance
 
-For two points:
+Euclidean distance can be used to measure the separation between two landmarks.
 
-``` text
-P1 = (x1, y1)
-P2 = (x2, y2)
+```text
+distance(P1, P2)
 ```
 
-Euclidean distance:
+Applications:
 
-``` text
-distance = sqrt((x2 - x1)^2 + (y2 - y1)^2)
-```
-
-Python:
-
-``` python
-import math
-
-distance = math.sqrt(
-    (x2 - x1) ** 2 +
-    (y2 - y1) ** 2
-)
-```
-
-------------------------------------------------------------------------
+- Finger proximity
+- Thumb/index relationship
+- Gesture features
+- Hand measurements
 
 ## Angle
 
-For three points:
+Angles can be calculated from three landmarks.
 
-``` text
-A ---- B ---- C
-      angle
+```text
+A → B → C
+
+Angle ABC
 ```
 
-The required angle is:
+Applications:
 
-``` text
-angle ABC
+- Finger extension
+- Finger bending
+- Joint analysis
+- Gesture rules
+
+---
+
+# 12. Finger Detection
+
+MediaPipe provides the landmarks, but **application-specific finger-state logic** can be built using those landmarks.
+
+General approach:
+
+```text
+Hand Landmarks
+      ↓
+Joint Angles
+      +
+Landmark Distances
+      ↓
+Finger State
+      ↓
+Open / Closed
 ```
 
-This can be calculated using vector mathematics.
+Functions practiced in this project include:
 
-These calculations are useful for:
-
--   Finger gestures
--   Joint angles
--   Eye measurements
--   Mouth measurements
--   Pose analysis
-
-------------------------------------------------------------------------
-
-# 13. Planned Face Analysis
-
-The Face Landmarker can be extended beyond visualization.
-
-Recommended progression:
-
-``` text
-Phase 1
-Face Landmark Detection
-        |
-        v
-Phase 2
-Landmark Coordinate Analysis
-        |
-        v
-Phase 3
-Distance + Angle Calculations
-        |
-        v
-Phase 4
-Eye Landmark Analysis
-        |
-        v
-Phase 5
-Blink Detection
-        |
-        v
-Phase 6
-Mouth / Lip Analysis
-        |
-        v
-Phase 7
-Smile / Expression Features
-        |
-        v
-Phase 8
-Head Pose / Orientation
-        |
-        v
-Phase 9
-Face + Hand + Pose Integration
+```text
+distance()
+calculate_angle()
+detect_fingers()
 ```
 
-------------------------------------------------------------------------
+These functions are geometric/application-level logic and are not the same thing as the underlying MediaPipe landmark model.
 
-# 14. Planned Computer Vision Learning Path
+---
 
-The project can progressively move from individual models to complete
-vision systems.
+# 13. Gesture Recognition
 
-``` text
-                    MediaPipe Practice
-                           |
-          +----------------+----------------+
-          |                |                |
-          v                v                v
-       Face             Hand              Pose
-          |                |                |
-          +----------------+----------------+
-                           |
-                           v
-                       Holistic
-                           |
-                           v
-                  Object Detection
-                           |
-                           v
-                  Geometry Features
-                           |
-                           v
-                 Gesture Recognition
-                           |
-                           v
-                 Human Understanding
-                           |
-                           v
-                Real-Time CV Application
+Gesture recognition can be built on top of the detected finger states.
+
+```text
+21 Hand Landmarks
+        ↓
+Finger Detection
+        ↓
+Finger States
+        ↓
+Rule-Based Logic
+        ↓
+Gesture
 ```
 
-------------------------------------------------------------------------
+Practice examples include:
 
-# 15. Recommended Practice Order
-
-Follow the modules in this order:
-
-### Step 1 --- Phone Camera
-
-Understand:
-
--   Video URL
--   OpenCV VideoCapture
--   Frame reading
--   BGR/RGB conversion
-
-### Step 2 --- Hand Landmarker
-
-Learn:
-
--   Landmark coordinates
--   Landmark visualization
--   Finger points
--   Distance
--   Joint angles
--   Gesture logic
-
-### Step 3 --- Pose Landmarker
-
-Learn:
-
--   Body landmarks
--   Joint relationships
--   Pose geometry
--   Body movement
-
-### Step 4 --- Face Landmarker
-
-Learn:
-
--   Face landmarks
--   Facial geometry
--   Eye landmarks
--   Mouth landmarks
--   Blink analysis
--   Facial movement
-
-### Step 5 --- Holistic
-
-Combine:
-
--   Face
--   Hands
--   Pose
-
-### Step 6 --- Object Detection
-
-Learn:
-
--   Bounding boxes
--   Classes
--   Confidence scores
--   Detection filtering
-
-### Step 7 --- Integrated Vision Application
-
-Combine multiple vision outputs into a single application.
-
-------------------------------------------------------------------------
-
-# 16. Running the Project
-
-Activate the environment:
-
-``` powershell
-.\.venv\Scripts\Activate.ps1
+```text
+Open Palm
+Fist
+One Finger
+Two Fingers
+Thumb Up
 ```
 
-Then run the required script.
+These rules are application-specific heuristics.
 
-### Face
+They should be tested across:
 
-``` powershell
-python face_landmarker.py
+- Different users
+- Different hand orientations
+- Different distances from the camera
+- Different lighting conditions
+- Left/right hands
+
+---
+
+# 14. Pose Landmarker
+
+The Pose Landmarker estimates human body landmarks.
+
+The standard pose representation contains **33 body landmarks**.
+
+General pipeline:
+
+```text
+Person
+  ↓
+Pose Detection
+  ↓
+33 Body Landmarks
+  ↓
+Coordinate Analysis
+  ↓
+Posture / Movement Analysis
 ```
 
-### Hand
+Potential applications:
 
-``` powershell
-python hand_landmarks.py
+- Human pose estimation
+- Posture analysis
+- Exercise monitoring
+- Movement analysis
+- Human activity applications
+
+Pose results can include image-relative landmarks and world-coordinate landmarks depending on the configured task/model.
+
+---
+
+# 15. Face Landmarker
+
+Face Landmarker provides facial landmark information.
+
+General pipeline:
+
+```text
+Face
+ ↓
+Face Detection / Landmarking
+ ↓
+Facial Landmarks
+ ↓
+Facial Feature Analysis
 ```
 
-### Pose
+Potential applications:
 
-``` powershell
-python pose_landmarks.py
+- Facial landmark tracking
+- Face geometry
+- Facial movement analysis
+- Head-related analysis
+- Facial-expression-related features when supported/configured
+
+---
+
+# 16. Holistic Landmarker
+
+Holistic Landmarker combines multiple human landmark components.
+
+```text
+                 Holistic
+                    │
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+        Face       Pose      Hands
 ```
 
-### Holistic
+It is useful when an application needs coordinated information from:
 
-``` powershell
-python holistic_landmarker.py
+- Face
+- Body pose
+- Left hand
+- Right hand
+
+This makes Holistic Landmarker useful for full-body human interaction and motion analysis.
+
+### Important API consideration
+
+The Python Tasks API returns landmark collections. Individual landmark objects and landmark lists must not be treated as the same data structure.
+
+For example, code should distinguish between:
+
+```text
+list of landmarks
 ```
 
-### Object Detection
+and:
 
-``` powershell
-python object_detector.py
+```text
+single NormalizedLandmark
 ```
 
-### Phone Camera Test
+This distinction is important when iterating through Holistic results.
 
-``` powershell
-python phone_camera.py
+---
+
+# 17. Object Detector
+
+Object detection is different from landmark detection.
+
+### Landmark detection
+
+```text
+Image
+ ↓
+Landmarks / Key Points
 ```
 
-------------------------------------------------------------------------
+### Object detection
 
-# 17. Troubleshooting
-
-## MediaPipe Import Error
-
-If MediaPipe cannot be imported:
-
-``` powershell
-pip install --upgrade mediapipe
+```text
+Image
+ ↓
+Object
+ ↓
+Bounding Box
++
+Category
++
+Confidence Score
 ```
 
-Verify:
+Typical output:
 
-``` powershell
-python -c "import mediapipe; print(mediapipe.__version__)"
+```text
+Object
+├── Category
+├── Confidence
+└── Bounding Box
 ```
 
-This project uses the newer MediaPipe Tasks API. Avoid assuming that
-older examples using:
+Potential applications:
 
-``` python
-mp.solutions
+- Industrial inspection
+- Object counting
+- Scene understanding
+- Product detection
+- Real-time monitoring
+
+---
+
+# 18. `.task` vs `.tflite`
+
+These two model formats should not automatically be treated as interchangeable.
+
+### `.task`
+
+A MediaPipe Task model asset/package designed to work with a particular MediaPipe Task.
+
+Example:
+
+```text
+hand_landmarker.task
+pose_landmarker_lite.task
+face_landmarker.task
+holistic_landmarker.task
 ```
 
-are compatible with every installed MediaPipe version.
+### `.tflite`
 
-------------------------------------------------------------------------
+TensorFlow Lite model format.
 
-## Model Not Found
+Example:
 
-If a script reports that a model is missing, verify:
+```text
+object_detector.tflite
+```
 
-``` powershell
+A `.tflite` model must be compatible with the selected MediaPipe task, including the expected model metadata and outputs.
+
+---
+
+# 19. Model Directory
+
+Create the model directory:
+
+```powershell
+mkdir models
+```
+
+Check it:
+
+```powershell
 Get-ChildItem .\models
 ```
 
-Check that the required model filename exactly matches the path in the
-Python script.
+---
 
-------------------------------------------------------------------------
+# 20. Model Download Commands
 
-## Camera Cannot Be Opened
-
-Check:
-
-1.  Phone camera streaming is running.
-2.  PC and phone are on the same network.
-3.  The IP address is correct.
-4.  The stream URL is correct.
-5.  Windows Firewall is not blocking the connection.
-
-Test the URL independently before debugging MediaPipe.
-
-------------------------------------------------------------------------
-
-## Low FPS
-
-Real-time performance depends on:
-
--   Camera resolution
--   Network streaming latency
--   CPU performance
--   MediaPipe model
--   Number of detected objects/faces/hands
--   Additional processing performed per frame
-
-For initial practice, prioritize correctness before optimization.
-
-------------------------------------------------------------------------
-
-# 18. Model Download Commands
-
-The required MediaPipe model files should be stored inside:
-
-```text
-models/
-```
-
-## Face Landmarker
-
-```powershell
-Invoke-WebRequest -Uri "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" -OutFile "models\face_landmarker.task"
-```
+> **Important:** MediaPipe model assets and storage paths can change between releases. Verify the current official MediaPipe model documentation before relying on a model URL.
 
 ## Hand Landmarker
 
 ```powershell
-Invoke-WebRequest -Uri "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" -OutFile "models\hand_landmarker.task"
+Invoke-WebRequest `
+  -Uri "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" `
+  -OutFile ".\models\hand_landmarker.task"
 ```
+
+Verify:
+
+```powershell
+Test-Path .\models\hand_landmarker.task
+```
+
+Expected:
+
+```text
+True
+```
+
+---
 
 ## Pose Landmarker Lite
 
 ```powershell
-Invoke-WebRequest -Uri "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task" -OutFile "models\pose_landmarker_lite.task"
+Invoke-WebRequest `
+  -Uri "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task" `
+  -OutFile ".\models\pose_landmarker_lite.task"
 ```
 
-## Verify the downloaded models
+Verify:
+
+```powershell
+Test-Path .\models\pose_landmarker_lite.task
+```
+
+---
+
+## Face Landmarker
+
+```powershell
+Invoke-WebRequest `
+  -Uri "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" `
+  -OutFile ".\models\face_landmarker.task"
+```
+
+Verify:
+
+```powershell
+Test-Path .\models\face_landmarker.task
+```
+
+---
+
+## Holistic Landmarker
+
+The model URL used during this project:
+
+```powershell
+Invoke-WebRequest `
+  -Uri "https://storage.googleapis.com/mediapipe-models/holistic_landmarker/holistic_landmarker/float16/latest/holistic_landmarker.task" `
+  -OutFile ".\models\holistic_landmarker.task"
+```
+
+Verify:
+
+```powershell
+Test-Path .\models\holistic_landmarker.task
+```
+
+---
+
+## Object Detector
+
+For Object Detector, use a model asset specifically documented as compatible with the **MediaPipe Object Detector** task.
+
+Do not assume that any `.tflite` model is automatically compatible.
+
+Compatibility should be checked for:
+
+- Model metadata
+- Input format
+- Output tensors
+- Label information
+- MediaPipe Task requirements
+
+---
+
+# 21. Verify All Models
 
 ```powershell
 Get-ChildItem .\models
 ```
 
-For example:
+Or check individual files:
 
-```text
-models/
-├── face_landmarker.task
-├── hand_landmarker.task
-├── holistic_landmarker.task
-├── object_detector.tflite
-└── pose_landmarker_lite.task
+```powershell
+Test-Path .\models\hand_landmarker.task
+Test-Path .\models\pose_landmarker_lite.task
+Test-Path .\models\face_landmarker.task
+Test-Path .\models\holistic_landmarker.task
 ```
-
-> **Note:** `holistic_landmarker.task` and `object_detector.tflite` are separate model files. Their download URLs depend on the exact model variant being used by the corresponding scripts. Use the official MediaPipe model source for the exact model required by those scripts rather than assuming that every model uses the same URL pattern.
 
 ---
 
-# Summary
+# 22. MediaPipe Running Modes
 
-This repository is a practical learning project for building real-time computer vision applications with **MediaPipe + OpenCV + Python**.
+MediaPipe Tasks commonly supports different processing modes.
 
-The current focus is on understanding individual MediaPipe tasks first and then progressively combining their outputs into more advanced computer vision applications.
+| Mode | Purpose |
+|---|---|
+| IMAGE | Process individual images |
+| VIDEO | Process sequential video frames |
+| LIVE_STREAM | Process live input asynchronously |
 
-The overall pipeline is:
+### IMAGE
+
+```text
+Image → Task → Result
+```
+
+Useful for:
+
+- Single-image testing
+- Debugging
+- Offline processing
+
+### VIDEO
+
+```text
+Frame 1 → Result
+Frame 2 → Result
+Frame 3 → Result
+...
+```
+
+Useful for:
+
+- Recorded videos
+- Timestamp-based processing
+- Video analysis
+
+### LIVE_STREAM
 
 ```text
 Camera
   ↓
-Frame Acquisition
+Live Frames
   ↓
-Preprocessing
+Async MediaPipe Processing
   ↓
-AI / Vision Model
-  ↓
-Landmarks / Detections
-  ↓
-Feature Extraction
-  ↓
-Decision Logic
-  ↓
-Application Output
+Results
 ```
+
+Useful for:
+
+- Real-time applications
+- Camera applications
+- Low-latency pipelines
+
+---
+
+# 23. Standard OpenCV + MediaPipe Pipeline
+
+```text
+OpenCV Camera Frame
+        ↓
+      BGR
+        ↓
+   BGR → RGB
+        ↓
+MediaPipe Image
+        ↓
+MediaPipe Task
+        ↓
+Detection / Landmarks
+        ↓
+Application Logic
+        ↓
+Visualization
+```
+
+OpenCV commonly reads images in **BGR**, while MediaPipe processing expects the appropriate image representation such as **RGB** for standard camera-image workflows.
+
+---
+
+# 24. FPS vs Latency
+
+FPS and latency are different measurements.
+
+### FPS
+
+Frames processed/displayed per second.
+
+```text
+Higher FPS
+    ↓
+Higher throughput
+```
+
+### Latency
+
+Delay between the real-world scene and the displayed/processed result.
+
+```text
+Real Scene
+    ↓
+Camera
+    ↓
+Network
+    ↓
+Processing
+    ↓
+Display
+
+Total Delay = Latency
+```
+
+It is possible to have:
+
+```text
+High FPS + High Latency
+```
+
+or:
+
+```text
+Low FPS + Low Latency
+```
+
+Therefore, FPS alone does not tell you whether a real-time system feels responsive.
+
+---
+
+# 25. IP Camera Latency
+
+With a mobile phone camera, the complete pipeline can be:
+
+```text
+Phone Camera
+     ↓
+Frame Capture
+     ↓
+Encoding
+     ↓
+Wi-Fi / Network
+     ↓
+HTTP Stream
+     ↓
+OpenCV Buffer
+     ↓
+MediaPipe
+     ↓
+Rendering
+     ↓
+Display
+```
+
+Therefore, visible latency may come from several stages.
+
+### Debugging approach
+
+Test progressively:
+
+```text
+1. Phone Camera
+       ↓
+2. Raw IP Stream
+       ↓
+3. OpenCV
+       ↓
+4. MediaPipe
+       ↓
+5. Visualization
+```
+
+This helps identify whether the delay is primarily caused by:
+
+- Network
+- Camera buffering
+- OpenCV buffering
+- Inference
+- Rendering
+- Processing backlog
+
+---
+
+# 26. Common Problems Encountered
+
+## Model file not found
+
+Example:
+
+```text
+FileNotFoundError:
+Unable to open file at models/hand_landmarker.task
+```
+
+Check:
+
+```powershell
+Test-Path .\models\hand_landmarker.task
+```
+
+If it returns:
+
+```text
+False
+```
+
+the model is not present at the expected path.
+
+---
+
+## Holistic option error
+
+Example:
+
+```text
+TypeError:
+HolisticLandmarkerOptions.__init__()
+got an unexpected keyword argument
+```
+
+This generally indicates that the code is using an option name that is not supported by the installed MediaPipe version.
+
+Check:
+
+```powershell
+python -c "import mediapipe as mp; print(mp.__version__)"
+```
+
+Then verify the API for that installed version.
+
+---
+
+## Holistic landmark iteration error
+
+Example:
+
+```text
+TypeError:
+'NormalizedLandmark' object is not iterable
+```
+
+This occurs when code expects a collection but receives a single landmark object.
+
+The result hierarchy should be inspected before writing loops.
+
+---
+
+## Camera connection failure
+
+Check:
+
+- Phone and PC network connection
+- IP address
+- Port
+- IP-camera application
+- Camera stream URL
+- Windows firewall/network restrictions
+
+---
+
+# 27. Recommended Learning Progression
+
+```text
+Phase 1
+Camera + OpenCV
+       ↓
+Phase 2
+Hand Landmarker
+       ↓
+Phase 3
+Finger Geometry
+       ↓
+Phase 4
+Gesture Recognition
+       ↓
+Phase 5
+Pose Landmarker
+       ↓
+Phase 6
+Face Landmarker
+       ↓
+Phase 7
+Holistic Landmarker
+       ↓
+Phase 8
+Object Detection
+       ↓
+Phase 9
+LIVE_STREAM
+       ↓
+Phase 10
+Latency / Performance Optimization
+       ↓
+Phase 11
+Multi-task Integration
+       ↓
+Phase 12
+Real Computer-Vision Application
+```
+
+---
+
+# 28. Useful Commands
+
+## Activate environment
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+## Check Python
+
+```powershell
+python --version
+```
+
+## Check MediaPipe
+
+```powershell
+python -c "import mediapipe as mp; print(mp.__version__)"
+```
+
+## Check OpenCV
+
+```powershell
+python -c "import cv2; print(cv2.__version__)"
+```
+
+## Check installed packages
+
+```powershell
+pip list
+```
+
+## List models
+
+```powershell
+Get-ChildItem .\models
+```
+
+## Run camera test
+
+```powershell
+python phone_camera.py
+```
+
+## Run Hand Landmarker
+
+```powershell
+python hand_landmarks.py
+```
+
+## Run Pose Landmarker
+
+```powershell
+python pose_landmarks.py
+```
+
+## Run Face Landmarker
+
+```powershell
+python face_landmarker.py
+```
+
+## Run Holistic Landmarker
+
+```powershell
+python holistic_landmarker.py
+```
+
+## Run Object Detector
+
+```powershell
+python object_detector.py
+```
+
+---
+
+# 29. Recommended Git Configuration
+
+Create `.gitignore`:
+
+```text
+.venv/
+__pycache__/
+*.pyc
+```
+
+If model files are large, decide separately whether they should be committed to GitHub or downloaded during setup.
+
+---
+
+# 30. Final Architecture
+
+```text
+                  MOBILE CAMERA
+                       │
+                       ▼
+                IP VIDEO STREAM
+                       │
+                       ▼
+                    OpenCV
+                       │
+                  BGR → RGB
+                       │
+                       ▼
+                MediaPipe Tasks
+                       │
+        ┌──────────────┼──────────────┐
+        │              │              │
+        ▼              ▼              ▼
+      Hand            Pose           Face
+        │              │              │
+        └──────────────┼──────────────┘
+                       │
+                       ▼
+                  HOLISTIC
+                       │
+                       ▼
+                OBJECT DETECTOR
+                       │
+                       ▼
+              FEATURE EXTRACTION
+                       │
+                       ▼
+             GESTURE / CV LOGIC
+                       │
+                       ▼
+               REAL-TIME OUTPUT
+```
+
+---
+
+# 31. Summary
+
+This project provides practical exposure to a complete MediaPipe computer-vision workflow:
+
+```text
+Camera Input
+     ↓
+OpenCV
+     ↓
+MediaPipe
+     ↓
+Landmarks / Detection
+     ↓
+Geometric Features
+     ↓
+Gesture / Recognition Logic
+     ↓
+Real-Time Application
+```
+
+The key concepts practiced are:
+
+- Mobile IP camera integration
+- OpenCV video capture
+- MediaPipe Tasks
+- Hand landmarks
+- Pose landmarks
+- Face landmarks
+- Holistic landmarks
+- Object detection
+- Distance calculation
+- Angle calculation
+- Finger-state detection
+- Gesture recognition
+- Model asset management
+- `.task` and `.tflite`
+- IMAGE / VIDEO / LIVE_STREAM modes
+- FPS and latency
+- Real-time computer-vision pipelines
+
+The next major focus is to complete the remaining model validation, move the camera pipeline toward **LIVE_STREAM**, measure latency/throughput, and then combine multiple MediaPipe capabilities into a practical computer-vision application.
+
+---
+
+## References
+
+- [MediaPipe Documentation](https://ai.google.dev/edge/mediapipe/solutions/guide)
+- [MediaPipe Tasks](https://ai.google.dev/edge/mediapipe/solutions/tasks)
+- [MediaPipe Python](https://ai.google.dev/edge/mediapipe/solutions/setup_python)
