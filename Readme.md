@@ -671,17 +671,16 @@ Test-Path .\models\holistic_landmarker.task
 
 ## Object Detector
 
-For Object Detector, use a model asset specifically documented as compatible with the **MediaPipe Object Detector** task.
+The model used for this project:
 
-Do not assume that any `.tflite` model is automatically compatible.
+**EfficientDet-Lite0**
 
-Compatibility should be checked for:
+Download:
 
-- Model metadata
-- Input format
-- Output tensors
-- Label information
-- MediaPipe Task requirements
+```powershell
+Invoke-WebRequest `
+  -Uri "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite" `
+  -OutFile ".\models\efficientdet_lite0.tflite"
 
 ---
 
